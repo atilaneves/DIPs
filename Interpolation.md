@@ -32,12 +32,25 @@ well-known issue or a use case for an existing projects can greatly increase the
 chances of the DIP being understood and carefully evaluated.
 
 ## Prior Work
-Required.
 
-If the proposed feature exists, or has been proposed, in other languages, this is the place
-to provide the details of those implementations and proposals. Ditto for prior DIPs.
+[String
+interpolation](https://en.wikipedia.org/wiki/String_interpolation) has
+been implemented in multiple languages, examples being:
+* [Javascript's template
+literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+, where user-defined functions can be passed the string fragments and
+values similarly to this proposal.
+* [Python's
+  f-strings](https://docs.python.org/3/tutorial/inputoutput.html#tut-f-strings).
+* [C#](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/interpolated),
+  where users can access a formattable object.
 
-If there is no prior work to be found, it must be explicitly noted here.
+There has also been previous work on string interpolation for D:
+* [Jonathan Marler's interpolated strings](http://github.com/dlang/dmd/pull/7988).
+* [Jason Helson's pull request](https://github.com/dlang/DIPs/pull/140).
+* [DIP1027](https://github.com/dlang/DIPs/blob/master/DIPs/rejected/DIP1027.md).
+* [DIP1036](https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1036.md).
+* [YAIDIP](https://github.com/John-Colvin/YAIDIP).
 
 ## Description
 
