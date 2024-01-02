@@ -1,4 +1,4 @@
-# (Your DIP title)
+# String Interpolation
 
 | Field           | Value                                                           |
 |-----------------|-----------------------------------------------------------------|
@@ -80,11 +80,84 @@ auto baz = 2;
 assert(text(i"foo $bar $(baz + 4) ok") == "foo MyStruct(42) 6 ok");
 ```
 
+A literal `$` can be obtained by escaping it with an additional `$`:
+
+```d
+assert(text(i"I have $$5.00 in my account") == "I have $5.00 in my account");
+```
+
 ### Syntax and gramar
 
-TO DO - but introduce `InterpolatedExpression` as `$ident` or `$(expr)`.
+This document proposes changing the [existing D grammar] with the following
+diff:
+
+
+```diff
+PrimaryExpression:
+    Identifier
+    . Identifier
+    TemplateInstance
+    . TemplateInstance
+    this
+    super
+    null
+    true
+    false
+    $
+    IntegerLiteral
+    FloatLiteral
+    CharacterLiteral
+    StringLiteral
++   InterpolatedString
+    ArrayLiteral
+    AssocArrayLiteral
+    FunctionLiteral
+    AssertExpression
+    MixinExpression
+    ImportExpression
+    NewExpression
+    FundamentalType . Identifier
+    ( Type ) . Identifier
+    ( Type ) . TemplateInstance
+    FundamentalType ( NamedArgumentListopt )
+    TypeCtor ( Type ) . Identifier
+    TypeCtor ( Type ) ( NamedArgumentListopt )
+    Typeof
+    TypeidExpression
+    IsExpression
+    ( Expression )
+    SpecialKeyword
+    TraitsExpression
+
++InterpolatedString:
++    InterpolatedDoubleQuotedString
++
++InterpolatedDoubleQuotedString:
++    i" InterpolatedDoubleQuotedCharacters "
++
++InterpolatedDoubleQuotedCharacters:
++    InterpolatedDoubleQuotedCharacter InterpolatedDoubleQuotedCharacters
++
++InterpolatedDoubleQuotedCharacter:
++    Character
++    InterpolationSequence
++    InterpolationEscapeSequence
++    EndOfLine
++
++InterpolationEscapeSequence:
++    $$
++
++InterpolationSequence:
++    $( AssignExpression )
+```
+
 
 ### Detailed Explanation
+
+An "unescaped" or "non-escaped" `$` character is `InterpolationSequence`
+as defined above in the grammar changes. Escaped `$` characters, i.e.
+multiple occurences in a row, will be considered part of the string with
+one fewer `$`: `$$` becomes `$`, `$$$` becomes `$$`, and so forth.
 
 i-strings are lowered to compile-time sequences by following these rules:
 
@@ -96,11 +169,13 @@ For the following elements, and starting at index 0, apply the
 following algorithm:
 
 If the current index is a non-escaped `$`, "emit" an
-`InterpolationExpression` with the string template argument set to its
-contents, followed by a variadic list of values that the expression
-evaluates to. This will usually be 1 value but could be more in the
-case of tuples/`AliasSeq`/nested i-strings. The current index will
-then be advanced to the one past the `InterpolationExpression`.
+`InterpolationExpression` with the string template argument set to the
+contents of the balanced parentheses following it, followed by a
+variadic list of values that the expression evaluates to. This will
+usually be one value but could be more in the case of
+tuples/`AliasSeq`/nested i-strings. The current index will then be
+advanced to the one past the `InterpolationExpression`, i.e. one past
+the closing parenthesis.
 
 Otherwise "emit" an `InterpolatedLiteral` with its string template
 argument set to
@@ -117,6 +192,7 @@ i-string[0 .. x] where `x` is the index of the nearest
 character.
 
 Any nested i-strings are recursively expanded.
+
 
 ### Runtime support
 
@@ -142,15 +218,20 @@ one string template argument.
 
 ## Breaking Changes and Deprecations
 
-Since there are no current interpolated strings, nothing will break or need to be deprecatd.
+Since there are no current interpolated strings, no existing code will
+break or need to be deprecatd.
+
 
 ## Reference
-Optional links to reference material such as existing discussions, research papers
-or any other supplementary materials.
+
+Optional links to reference material such as existing discussions,
+research papers or any other supplementary materials.
+
 
 ## Copyright & License
-Copyright (c) 2023 by the D Language Foundation
+Copyright (c) 2024 by the D Language Foundation
 
 Licensed under [Creative Commons Zero 1.0](https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt)
+
 
 ## Reviews
