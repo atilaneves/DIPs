@@ -99,7 +99,7 @@ A literal `$` can be obtained by escaping it with an additional `$`:
 assert(text(i"I have $$5.00 in my account") == "I have $5.00 in my account");
 ```
 
-### Syntax and gramar
+### Syntax and grammar
 
 This document proposes changing the [existing D grammar] with the following
 diff:
