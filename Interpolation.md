@@ -25,11 +25,116 @@ advantage of D's superior compile-time metaprogramming features.
 * [Reviews](#reviews)
 
 ## Rationale
-Required.
 
-A short motivation about the importance and benefits of the proposed change.  An existing,
-well-known issue or a use case for an existing projects can greatly increase the
-chances of the DIP being understood and carefully evaluated.
+It is common in programming to convert values into strings for
+purposes such as logging, debugging, and many more. D currently has
+two main ways of doing so exemplified by the standard library
+functions `std.conv.text` and `std.format.format`. Similarly to the
+[YAIDIP](https://github.com/John-Colvin/YAIDIP) proposal, this
+document will refer to them respectively as _interspersion style_ and
+_formatted style_. There are other standard library function examples
+for each, such as `std.stdio.writeln` (interspersion) and
+`std.stdio.writefln` (formatted). Both styles have advantages and
+disadvantages.
+
+Interspersion style is simple enough to not require an explanation,
+and is trivially implemented in languages with variadic templates:
+
+```d
+string name = getName();
+string s = text("Hi, " name, "!");
+```
+
+Its main disadvantage is the syntactic noise created by the quotes and
+commas, especially if these characters are present in the string
+arguments. It also performs poorly visually when there are a lot of
+arguments, in particular for a common use case in D that will be
+mentioned below.
+
+Formatted style is more flexible, and trades one type of noise
+(commas, quotes), for another (format specifiers). The main advantage
+is the control this style gives the user over *how* the values are
+formatted, which can be important for numeric values and/or for
+alignment reasons:
+
+```d
+string name = getName();
+string s = format!"Hello, %40s"(name);
+```
+
+Its disadvantages are that the values are separated lexically from
+where they should appear in the resulting string, making it hard
+to match which format specifiers correspond to which value. This latter
+disadvantage makes it easy for mismatches to occur.
+
+Both styles are poor choices when the string fragments are long and/or
+there are a lot of values to format, both of which tend occur when
+using one of D's strengths as a language: generating code at
+compile-time intended to be [mixed
+in](https://tour.dlang.org/tour/en/gems/string-mixins). This is
+illustrated by code in the standard library
+[itself](https://github.com/dlang/phobos/blob/v2.095.1/std/bitmanip.d#L115):
+
+```d
+enum result =
+    // getter
+    "@property bool " ~ name ~ "() @safe pure nothrow @nogc const { return "
+    ~"("~store~" & "~myToString(maskAllElse)~") != 0;}\n"
+    // setter
+    ~"@property void " ~ name ~ "(bool v) @safe pure nothrow @nogc { "
+    ~"if (v) "~store~" |= "~myToString(maskAllElse)~";"
+    ~"else "~store~" &= cast(typeof("~store~"))(-1-cast(typeof("~store~"))"~myToString(maskAllElse)~");}\n";
+```
+
+Here all the values to be "interpolated" are strings and so string
+concatenation was used instead of `std.conv.text`. Formatted style is
+not much better:
+
+```d
+enum result = format(
+    "@property bool %s() @safe pure nothrow @nogc const {
+        return (%s & %s) != 0;
+    }
+    @property void %s(bool v) @safe pure nothrow @nogc {
+        if (v) %s |= %s;
+        else %s &= cast(typeof(%s))(-1-cast(typeof(%s))%s);
+    }\n",
+    name, store, maskAllElse,
+    name, store, maskAllElse, store, store, store, maskAllElse
+);
+```
+
+Notice how the arguments matching the `%s` format specifiers are
+formatted in an attempt to aid comprehension. Using positional
+arguments is slightly better:
+
+```d
+enum result = format(
+    "@property bool %1$s() @safe pure nothrow @nogc const {
+        return (%2$s & %3$s) != 0;
+    }
+    @property void %1$s(bool v) @safe pure nothrow @nogc {
+        if (v) %2$s |= %3$s;
+        else %2$s &= cast(typeof(%2$s))(-1-cast(typeof(%2$s))%3$s);
+    }\n",
+    name, store, maskAllElse
+);
+```
+
+The i-string version is, however, the most readable:
+
+```d
+enum result = text(
+    i"@property bool $(name)() @safe pure nothrow @nogc const {
+        return ($(store) & $(maskAllElse)) != 0;
+    }
+    @property void $(name)(bool v) @safe pure nothrow @nogc {
+        if (v) $(store) |= $(maskAllElse);
+        else $(store) &= cast(typeof($(store)))(-1-cast(typeof($(store)))$(maskAllElse));
+    }\n"
+);
+```
+
 
 ## Prior Work
 
@@ -63,7 +168,7 @@ _double quoted i-strings_, i.e. `i"Here go characters"`.
 
 ### Example
 
-The i-string `i"foo $bar $(baz + 4) ok"` is lowered into following
+The i-string `i"foo $(bar) $(baz + 4) ok"` is lowered into following
 [compile-time sequence](https://dlang.org/articles/ctarguments.html):
 
 ```d
@@ -90,7 +195,7 @@ auto foo = "a string";
 struct MyStruct { int member; }
 auto bar = Struct(42);
 auto baz = 2;
-assert(text(i"foo $bar $(baz + 4) ok") == "foo MyStruct(42) 6 ok");
+assert(text(i"foo $(bar) $(baz + 4) ok") == "foo MyStruct(42) 6 ok");
 ```
 
 A literal `$` can be obtained by escaping it with an additional `$`:
@@ -227,6 +332,18 @@ functions such as `writeln` or `text`.
 
 `InterpolatedLiteral` and `InterpolatedExpression` will both have exactly
 one string template argument.
+
+### Reasoning
+
+The types to be defined in the D runtime, and the lowering the compiler
+does to them, is so that user functions can be overloaded to work with
+regular strings and i-strings:
+
+
+```d
+void func(string s);
+void func(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
+```
 
 ## Use Cases
 
