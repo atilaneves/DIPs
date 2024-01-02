@@ -311,10 +311,6 @@ writeln(tr(i"You drink $(coffees) cups a day and it gives you $(coffees + iq) IQ
 // Sie trinken 5 Tassen Kaffee am Tag. Dadurch erhöht sich Ihr IQ auf -25
 ```
 
-### URL escaping
-
-TO DO - ask Adam.
-
 ### SQL prepared statements
 
 With an i-string aware
