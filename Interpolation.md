@@ -10,9 +10,9 @@
 
 ## Abstract
 
-Required.
-
-Short and concise description of the idea in a few lines.
+Allow embedding expressions within strings for purposes such as string
+formatting, easier code generation, logging, and much more by taking
+advantage of D's superior compile-time metaprogramming features.
 
 
 ## Contents
