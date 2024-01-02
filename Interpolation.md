@@ -228,6 +228,128 @@ functions such as `writeln` or `text`.
 `InterpolatedLiteral` and `InterpolatedExpression` will both have exactly
 one string template argument.
 
+## Use Cases
+
+This section discusses potential ways to use the language feature
+described in this document.  It does *not* mandate any library
+implementations nor suggests adding the examples presented to Phobos.
+
+### What already works
+
+By construction, string interpolation as presented in this document
+would work
+["out-of-the-box"](https://github.com/adamdruppe/interpolation-examples/blob/master/01-basics.d)
+with existing Phobos functions such as `std.stdio.writeln` and
+`std.conv.text`:
+
+```d
+import std;
+string[string] AA = ["hello":"world"];
+writeln(i"The AA has \"$(AA["hello"])\" inside it."); // The AA has "world" inside it.
+int i;
+string s = i"i: $(i)".text;
+```
+
+### Custom formatting
+
+This proposal does not directly address custom formatting in the style
+of C's `printf` or D's `std.format.format`, but it does make it
+possible for a
+[library](https://github.com/adamdruppe/interpolation-examples/blob/master/lib/format.d)
+to be written (or code to be added to Phobos) that [makes it
+possible](https://github.com/adamdruppe/interpolation-examples/blob/master/02-formatting.d):
+
+```d
+string name = "D user";
+float wealth = 55.70;
+
+// only $ followed by a ( is special.
+// so the double $ here is a basic one followed by an
+// interpolated var. Can also use \$ in i"strings"
+// then :% is interpreted *by this function* to mean
+// "use this format string for the preceding argument"
+writefln(i"$(name) has $$(wealth):%0.2f");
+```
+
+The exact syntax of the mini-language used for formatting would be
+decided by the library authors.
+
+### `printf` compatibility
+
+Although D has alternative and superior ways of formatting strings, it
+may be that some users would like to pass interpolated strings into
+`printf`. As in the previous case of custom formatting, this is not
+directly addressed by the language feature being proposed, but a
+[support
+library](https://github.com/adamdruppe/interpolation-examples/blob/master/lib/printf.d)
+can be written that [enables
+compatibility](https://github.com/adamdruppe/interpolation-examples/blob/master/03-printf.d)
+with `printf`, `sprintf`, etc.:
+
+```d
+int age = 3;
+string name = "The child";
+printf(makePrintfArgs(i"$(name) is $(age) years old.\n").tupleof);
+```
+
+### Internationalization
+
+The flexibility of this string interpolation proposal makes it
+possible to use [gettext](https://en.wikipedia.org/wiki/Gettext#),
+along with some [support
+code](https://github.com/adamdruppe/interpolation-examples/blob/master/04-internationalization.d)
+to translate interpolated strings into different languages:
+
+```d
+int coffees = 5;
+int iq = -30;
+
+writeln(tr(i"You drink $(coffees) cups a day and it gives you $(coffees + iq) IQ"));
+// You drink 5 cups a day and it gives you -25 IQ
+gettext.selectLanguage("mo/german.mo"); // change the language to German
+writeln(tr(i"You drink $(coffees) cups a day and it gives you $(coffees + iq) IQ"));
+// Sie trinken 5 Tassen Kaffee am Tag. Dadurch erhöht sich Ihr IQ auf -25
+```
+
+### URL escaping
+
+TO DO - ask Adam.
+
+### SQL prepared statements
+
+With an i-string aware
+[library](https://github.com/adamdruppe/interpolation-examples/blob/master/lib/sql.d)
+one can create prepared SQL statements with values embedded
+[directly](https://github.com/adamdruppe/interpolation-examples/blob/master/06-sql.d):
+
+```d
+int id = 1;
+string name = "' DROP TABLE', '";
+db.execi(i"INSERT INTO sample VALUES ($(id), $(name))");
+
+foreach(row; db.query("SELECT * from sample"))
+writeln(row[0], ": ", row[1]);
+// Prints (no SQL injection):
+// 1: ' DROP TABLE', '
+```
+
+### HTML generation
+
+Again, with [supporting
+code](https://github.com/adamdruppe/interpolation-examples/blob/master/lib/html.d),
+one can write D i-strings with values embedded within them that get
+[correctly
+escaped](https://github.com/adamdruppe/interpolation-examples/blob/master/07-html.d)
+for consumption by a browser:
+
+```d
+string name = "<bar>"; // this will be properly encoded despite the angle brackets
+auto element = i"<foo>$(name)</foo>".html; // a dom.d Element
+assert(element.tagName == "foo"); // a structured object, not a string
+
+writeln(element.toString());
+// <foo>&lt;bar&gt;</foo>
+```
 
 ## Breaking Changes and Deprecations
 
