@@ -345,6 +345,11 @@ void func(string s);
 void func(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
 ```
 
+The second overload can then inspect `args` and do the appropriate
+thing for its implementation depending on the type of each of the
+arguments.  Examples of what can be achieved can be found later in the
+document.
+
 ## Use Cases
 
 This section discusses potential ways to use the language feature
