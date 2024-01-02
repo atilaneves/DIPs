@@ -235,12 +235,6 @@ Since there are no current interpolated strings, no existing code will
 break or need to be deprecatd.
 
 
-## Reference
-
-Optional links to reference material such as existing discussions,
-research papers or any other supplementary materials.
-
-
 ## Copyright & License
 Copyright (c) 2024 by the D Language Foundation
 
