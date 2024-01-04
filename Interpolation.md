@@ -1,4 +1,4 @@
-# String Interpolation
+# String Interpolation Literals
 
 | Field           | Value                                                           |
 |-----------------|-----------------------------------------------------------------|
@@ -10,9 +10,13 @@
 
 ## Abstract
 
-Allow embedding expressions within strings for purposes such as string
-formatting, easier code generation, logging, and much more by taking
-advantage of D's superior compile-time metaprogramming features.
+Create a new literal that allows embedding expressions within strings
+for purposes such as formatting, code generation, logging, and
+much more by taking advantage of D's superior compile-time
+metaprogramming features.
+
+No GC allocations happen unless the user chooses to do so by calling a
+function such as `std.conv.text`.
 
 
 ## Contents
@@ -20,7 +24,6 @@ advantage of D's superior compile-time metaprogramming features.
 * [Prior Work](#prior-work)
 * [Description](#description)
 * [Breaking Changes and Deprecations](#breaking-changes-and-deprecations)
-* [Reference](#reference)
 * [Copyright & License](#copyright--license)
 * [Reviews](#reviews)
 
@@ -42,14 +45,14 @@ and is trivially implemented in languages with variadic templates:
 
 ```d
 string name = getName();
-string s = text("Hi, " name, "!");
+string s = text("Hi, ", name, "!");
 ```
 
 Its main disadvantage is the syntactic noise created by the quotes and
 commas, especially if these characters are present in the string
-arguments. It also performs poorly visually when there are a lot of
-arguments, in particular for a common use case in D that will be
-mentioned below.
+literal arguments. It also does not perform well visually when there
+are a lot of arguments, in particular for a common use case in D that
+will be mentioned below.
 
 Formatted style is more flexible, and trades one type of noise
 (commas, quotes), for another (format specifiers). The main advantage
@@ -63,9 +66,11 @@ string s = format!"Hello, %40s"(name);
 ```
 
 Its disadvantages are that the values are separated lexically from
-where they should appear in the resulting string, making it hard
-to match which format specifiers correspond to which value. This latter
-disadvantage makes it easy for mismatches to occur.
+where they should appear in the resulting string, making it hard to
+match which format specifiers correspond to which value. This latter
+disadvantage makes it easy for mismatches to occur. Its flexibility is
+seldom needed: experience has shown that nearly all specifiers in
+calls to `format` are `%s`.
 
 Both styles are poor choices when the string fragments are long and/or
 there are a lot of values to format, both of which tend occur when
@@ -87,8 +92,8 @@ enum result =
 ```
 
 Here all the values to be "interpolated" are strings and so string
-concatenation was used instead of `std.conv.text`. Formatted style is
-not much better:
+concatenation was used instead of `std.conv.text`, but the point
+remains. Formatted style is not much better:
 
 ```d
 enum result = format(
@@ -164,7 +169,7 @@ letter `i`, as in `i"Hello"`, and will be referred to as _i-strings_
 in the remainder of the document. D has several kinds of string
 literals such as `r"WYSIWYG strings"` and `q{token strings}` but for
 the sake of simplicity this document will only concern itself with
-_double quoted i-strings_, i.e. `i"Here go characters"`.
+_double quoted i-strings_, for example: `i"Here go characters"`.
 
 ### Example
 
@@ -206,8 +211,8 @@ assert(text(i"I have $$5.00 in my account") == "I have $5.00 in my account");
 
 ### Syntax and grammar
 
-This document proposes changing the [existing D grammar] with the following
-diff:
+This document proposes changing the [existing D
+grammar](https://dlang.org/spec/grammar.html) with the following diff:
 
 
 ```diff
@@ -274,7 +279,7 @@ PrimaryExpression:
 
 An "unescaped" or "non-escaped" `$` character is `InterpolationSequence`
 as defined above in the grammar changes. Escaped `$` characters, i.e.
-multiple occurences in a row, will be considered part of the string with
+multiple occurrences in a row, will be considered part of the string with
 one fewer `$`: `$$` becomes `$`, `$$$` becomes `$$`, and so forth.
 
 i-strings are lowered to compile-time sequences by following these rules:
@@ -347,14 +352,34 @@ void func(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
 
 The second overload can then inspect `args` and do the appropriate
 thing for its implementation depending on the type of each of the
-arguments.  Examples of what can be achieved can be found later in the
+arguments. Examples of what can be achieved can be found later in the
 document.
+
+The reason for both a header and a footer is so that client (library)
+code can distinguish where nested i-strings occur and tell them apart
+from compile-time sequences such as `std.meta.AliasSeq`. That is, it
+enables distinguising calling a function `foo` in these two ways:
+
+```d
+foo(int i, string s);
+foo(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
+
+int i;
+string s;
+foo(AliasSeq!(i, s));       // calls 1st overload
+foo(i"$(AliasSeq!(i, s))"); // calls 2nd overload
+```
+
+If the i-string were "just" expanded to a compile-time sequence (a
+tuple) it would not be possible to know that an i-string was originally
+intended.
 
 ## Use Cases
 
 This section discusses potential ways to use the language feature
-described in this document.  It does *not* mandate any library
+described in this document. It does *not* mandate any library
 implementations nor suggests adding the examples presented to Phobos.
+It also does not argue against such additions.
 
 ### What already works
 
@@ -471,7 +496,7 @@ writeln(element.toString());
 
 ## Breaking Changes and Deprecations
 
-Since there are no current interpolated strings, no existing code will
+Since there are no current i-string tokens, no existing code will
 break or need to be deprecatd.
 
 
