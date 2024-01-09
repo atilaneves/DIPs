@@ -73,9 +73,9 @@ seldom needed: experience has shown that nearly all specifiers in
 calls to `format` are `%s`.
 
 Both styles are poor choices when the string fragments are long and/or
-there are a lot of values to format, both of which tend occur when
-using one of D's strengths as a language: generating code at
-compile-time intended to be [mixed
+there are a lot of values to format, both of which tend to occur when
+taking advantage of key strength of D: generating code at compile-time
+intended to be [mixed
 in](https://tour.dlang.org/tour/en/gems/string-mixins). This is
 illustrated by code in the standard library
 [itself](https://github.com/dlang/phobos/blob/v2.095.1/std/bitmanip.d#L115):
@@ -126,7 +126,7 @@ enum result = format(
 );
 ```
 
-The i-string version is, however, the most readable:
+The version proposed by this document is, however, the most readable:
 
 ```d
 enum result = text(
@@ -178,7 +178,7 @@ The i-string `i"foo $(bar) $(baz + 4) ok"` is lowered into following
 
 ```d
 (
-    InterpolationHeader(),
+    InterpolationPrologue(),
     InterpolatedLiteral!"foo "(),
     InterpolatedExpression!"bar"(),
     bar,
@@ -186,7 +186,7 @@ The i-string `i"foo $(bar) $(baz + 4) ok"` is lowered into following
     InterpolatedExpression!"baz + 4"(),
     baz + 4,
     InterpolatedLiteral!" ok"()
-    InterpolationFooter()
+    InterpolationEpilog()
 )
 ```
 
@@ -284,9 +284,9 @@ one fewer `$`: `$$` becomes `$`, `$$$` becomes `$$`, and so forth.
 
 i-strings are lowered to compile-time sequences by following these rules:
 
-The first element is always `InterpolationHeader()`.
+The first element is always `InterpolationPrologue()`.
 
-The last element is always `InterpolationFooter()`.
+The last element is always `InterpolationEpilog()`.
 
 For the following elements, and starting at index 0, apply the
 following algorithm:
@@ -320,7 +320,7 @@ Any nested i-strings are recursively expanded.
 ### Runtime support
 
 `core.interpolation` will contain the definition for
-`InterpolationHeader`, `InterpolationFooter`, `InterpolatedLiteral`,
+`InterpolationPrologue`, `InterpolationEpilog`, `InterpolatedLiteral`,
 and `InterpolatedExpression`. All of these are guaranteed to have a
 member function with the following declaration:
 
@@ -347,7 +347,7 @@ regular strings and i-strings:
 
 ```d
 void func(string s);
-void func(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
+void func(A...)(InterpolationPrologue header, A args, InterpolationEpilog footer);
 ```
 
 The second overload can then inspect `args` and do the appropriate
@@ -362,7 +362,7 @@ enables distinguising calling a function `foo` in these two ways:
 
 ```d
 foo(int i, string s);
-foo(A...)(InterpolationHeader header, A args, InterpolationFooter footer);
+foo(A...)(InterpolationPrologue header, A args, InterpolationEpilog footer);
 
 int i;
 string s;
