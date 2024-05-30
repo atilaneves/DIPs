@@ -39,6 +39,7 @@ necessary annotations in D code.
 ## Prior Work
 
 [DIP1028](https://github.com/atilaneves/DIPs/blob/master/DIPs/rejected/DIP1028.md).
+
 [A previous draft proposal](https://github.com/dlang/DIPs/pull/153).
 
 ## Description
