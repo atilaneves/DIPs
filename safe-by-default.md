@@ -65,9 +65,10 @@ If there is no body, the compiler cannot verify the `@safe`ty of the
 function and in those cases this DIP proposes that there will be no
 default. All declarations (i.e. functions with no body) must have
 exactly one of the `@safe`/`@trusted`/`@system` annotations or the
-module that contains them will fail to compile. This will handle the
-common case of declaring functions that are implemented in another
-language.
+module that contains them will fail to compile. The annotations can be
+individual or as part of `@safe:` or `@trusted {}` blocks. This will
+handle the common case of declaring functions that are implemented in
+another language.
 
 
 ## Breaking Changes and Deprecations
